@@ -67,22 +67,40 @@ def check_rss_feeds():
 
     for feed_url in RSS_FEEDS:
         print(f"正在解析 RSS 源: {feed_url}")
-        feed = feedparser.parse(feed_url)
-        if not feed.entries:
-            print(f"警告: 从 {feed_url} 没有获取到任何条目")
-            continue
-        
-        print(f"从 {feed_url} 获取到 {len(feed.entries)} 个条目")
+        try:
+            feed = feedparser.parse(feed_url)
+            if not feed.entries:
+                print(f"警告: 从 {feed_url} 没有获取到任何条目")
+                continue
+            print(f"从 {feed_url} 获取到 {len(feed.entries)} 个条目")
 
-        for entry in feed.entries:
-            title = entry.get('title', '')
-            link = entry.get('link', '')
-            if any(keyword in title.lower() for keyword in KEYWORDS) and link not in sent_posts:
-                print(f"发现匹配的帖子: {title}")
-                message = f"<b>{title}</b>\n\n{link}"
-                send_telegram_message(message)
-                sent_posts[link] = current_time.isoformat()
-                new_posts = True
+            for entry in feed.entries:
+                title = entry.get('title', '')
+                link = entry.get('link', '')
+                published_time = entry.get('published_parsed')
+                
+                if published_time:
+                    entry_time = datetime(*published_time[:6], tzinfo=timezone.utc)
+                else:
+                    entry_time = current_time
+
+                print(f"检查条目: {title} - {link}")
+                print(f"发布时间: {entry_time}")
+
+                if any(keyword.lower() in title.lower() for keyword in KEYWORDS) and link not in sent_posts:
+                    print(f"发现匹配的帖子: {title}")
+                    message = f"<b>{title}</b>\n\n{link}"
+                    send_telegram_message(message)
+                    sent_posts[link] = entry_time.isoformat()
+                    new_posts = True
+                else:
+                    if link in sent_posts:
+                        print(f"帖子已经发送过: {title}")
+                    else:
+                        print(f"帖子不匹配关键词: {title}")
+
+        except Exception as e:
+            print(f"解析 {feed_url} 时出错: {e}")
 
     if new_posts:
         print("发现新的匹配帖子，正在更新 sent_posts.json")
@@ -91,6 +109,7 @@ def check_rss_feeds():
         print("没有发现新的匹配帖子")
 
     print("RSS 检查完成")
+
 
 if __name__ == "__main__":
     # 强制创建文件（如果不存在）
