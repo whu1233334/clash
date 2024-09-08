@@ -1,1 +1,33 @@
+name: RSS Check
 
+on:
+  schedule:
+    - cron: '0 */1 * * *'  # 每小时运行一次
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  check-rss:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xmlstarlet curl jq
+
+    - name: Run RSS check script
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        chmod +x ./rss_check.sh
+        ./rss_check.sh
+
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Update RSS cache" -a || echo "No changes to commit"
+        git push
