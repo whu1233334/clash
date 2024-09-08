@@ -1,4 +1,4 @@
-name: Check RSS and Send Telegram Notifications
+name: Check RSS and Update Repository
 
 on:
   schedule:
@@ -9,10 +9,27 @@ permissions:
   contents: write
 
 jobs:
-  check-rss:
+  check-rss-and-update:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # 这确保我们获取完整的历史记录
+
+    - name: Setup Git
+      run: |
+        git config --global user.name 'GitHub Action'
+        git config --global user.email 'action@github.com'
+
+    - name: Update .gitignore
+      run: |
+        echo "formatted_rss.xml" >> .gitignore
+        echo "latest_rss.xml" >> .gitignore
+
+    - name: Remove tracked files
+      run: |
+        git rm --cached formatted_rss.xml latest_rss.xml || true
+        git commit -m "Stop tracking formatted_rss.xml and latest_rss.xml" || true
 
     - name: Install dependencies
       run: |
@@ -27,9 +44,8 @@ jobs:
         chmod +x ./rss_check.sh
         ./rss_check.sh
 
-    - name: Commit and push if cache file changed
+    - name: Commit and push changes
       run: |
-        git config --global user.name 'GitHub Action'
-        git config --global user.email 'action@github.com'
-        git add rss_cache.txt
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update RSS cache" && git push)
+        git add .gitignore rss_cache.txt
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update RSS cache and .gitignore" && git push)
+
