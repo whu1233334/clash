@@ -4,7 +4,6 @@ import feedparser
 import requests
 import re
 from datetime import datetime, timezone, timedelta
-from urllib.parse import urlparse, parse_qs
 
 # 配置（保持不变）
 RSS_FEEDS = [
@@ -20,31 +19,10 @@ TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
 
 def extract_post_id(url):
     """
-    从URL中提取帖子ID。
-    需要根据不同网站的URL结构进行调整。
+    从URL中提取连续的5个或以上数量的数字作为帖子ID。
     """
-    parsed_url = urlparse(url)
-    path = parsed_url.path
-    query = parse_qs(parsed_url.query)
-    # 对于不同的网站，使用不同的提取逻辑
-    if 'linux.do' in parsed_url.netloc:
-        # 假设linux.do的URL格式为 /t/{id}
-        match = re.search(r'/t/(\d+)', path)
-        return match.group(1) if match else None
-    elif 'v2ex.com' in parsed_url.netloc:
-        # 假设v2ex的URL格式为 /t/{id}
-        match = re.search(r'/t/(\d+)', path)
-        return match.group(1) if match else None
-    elif 'nodeseek.com' in parsed_url.netloc:
-        # 假设nodeseek的URL中有一个tid参数
-        return query.get('tid', [None])[0]
-    elif 'serverplayer.com' in parsed_url.netloc:
-        # 假设serverplayer的URL格式为 /t/{id}.html
-        match = re.search(r'/t/(\d+)\.html', path)
-        return match.group(1) if match else None
-    
-    # 如果无法提取ID，返回整个URL作为唯一标识符
-    return url
+    match = re.search(r'\d{5,}', url)
+    return match.group() if match else url
 
 def load_sent_posts():
     if os.path.exists(SENT_POSTS_FILE):
