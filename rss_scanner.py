@@ -13,7 +13,7 @@ RSS_URLS = [
 ]
 
 # 关键词列表
-KEYWORDS = ["白嫖", "免费", "抽", "羊毛", "奖", "送"]
+KEYWORDS = ["白嫖", "免费", "抽"]
 
 # Telegram 配置
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
@@ -40,10 +40,13 @@ def load_sent_posts():
         print("sent_posts.json 文件不存在，将创建新文件")
         return {}
 
-
 def save_sent_posts(sent_posts):
-    with open(SENT_POSTS_FILE, 'w') as f:
-        json.dump(sent_posts, f)
+    try:
+        with open(SENT_POSTS_FILE, 'w') as f:
+            json.dump(sent_posts, f, indent=2)
+        print(f"成功保存 {len(sent_posts)} 条记录到 {SENT_POSTS_FILE}")
+    except Exception as e:
+        print(f"保存到 {SENT_POSTS_FILE} 时出错: {e}")
 
 def send_telegram_message(title, link):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -60,13 +63,20 @@ def send_telegram_message(title, link):
 def check_rss_feeds():
     sent_posts = load_sent_posts()
     current_time = datetime.utcnow()
+    new_posts_found = False
     
     for rss_url in RSS_URLS:
+        print(f"正在解析 RSS 源: {rss_url}")
         feed = feedparser.parse(rss_url)
+        if feed.entries:
+            print(f"从 {rss_url} 获取到 {len(feed.entries)} 个条目")
+        else:
+            print(f"警告: 从 {rss_url} 没有获取到任何条目")
+            continue
+        
         for entry in feed.entries:
             # 使用链接作为唯一标识符
             post_id = entry.link
-            
             # 如果帖子已经发送过，跳过
             if post_id in sent_posts:
                 continue
@@ -88,11 +98,19 @@ def check_rss_feeds():
                     print("消息发送成功")
                     # 记录已发送的帖子
                     sent_posts[post_id] = current_time.isoformat()
+                    new_posts_found = True
                 else:
                     print(f"消息发送失败: {response.get('description')}")
     
-    # 保存更新后的已发送帖子记录
-    save_sent_posts(sent_posts)
+    if new_posts_found:
+        print(f"发现新的匹配帖子，正在更新 {SENT_POSTS_FILE}")
+        save_sent_posts(sent_posts)
+    else:
+        print("没有发现新的匹配帖子，不更新缓存文件")
 
 if __name__ == "__main__":
+    print("开始检查 RSS 源")
+    print(f"当前工作目录: {os.getcwd()}")
+    print(f"SENT_POSTS_FILE 路径: {os.path.abspath(SENT_POSTS_FILE)}")
     check_rss_feeds()
+    print("RSS 检查完成")
