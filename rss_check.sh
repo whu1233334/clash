@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # RSS 订阅地址
-RSS_URL="https://www.v2ex.com/index.xml"
+RSS_URL="https://linux.do/latest.rss"
 # 本地缓存文件，名字可随便改
 CACHE_FILE="./rss_cache.txt"
 # Telegram Bot API Key
