@@ -38,7 +38,7 @@ def check_rss_feeds():
             # 检查帖子是否在过去1小时内发布
             if 'published_parsed' in entry:
                 publish_time = datetime(*entry.published_parsed[:6])
-                if datetime.utcnow() - publish_time > timedelta(hours=1):
+                if datetime.utcnow() - publish_time > timedelta(hours=4):
                     continue
             title = entry.title
             link = entry.link
