@@ -26,16 +26,18 @@ check_new_posts() {
 
   # 解析新条目并检查新帖子
   IFS=$'\n' # 设置内部字段分隔符为换行符，以正确读取每条记录
-  readarray -t guids < <(xmlstarlet sel -t -m "//item" -v "guid" -n formatted_rss.xml)
-  
-  for guid in "${guids[@]}"; do
-    # 检查 guid 是否已存在于缓存中
-    if ! grep -qF -- "$guid" "$CACHE_FILE"; then
+  readarray -t links < <(xmlstarlet sel -t -m "//item" -v "link" -n formatted_rss.xml)
+  for link in "${links[@]}"; do
+    # 检查 link 是否已存在于缓存中
+    if ! grep -qF -- "$link" "$CACHE_FILE"; then
       # 如果这是一个新帖子，提取详细信息并发送通知
-      title=$(xmlstarlet sel -t -m "//item[guid='$guid']" -v "title" formatted_rss.xml)
-      description=$(xmlstarlet sel -t -m "//item[guid='$guid']" -v "description" formatted_rss.xml)
-      link=$(xmlstarlet sel -t -m "//item[guid='$guid']" -v "link" formatted_rss.xml)
-      category=$(xmlstarlet sel -t -m "//item[guid='$guid']" -v "category" formatted_rss.xml)
+      title=$(xmlstarlet sel -t -m "//item[link='$link']" -v "title" formatted_rss.xml)
+      description=$(xmlstarlet sel -t -m "//item[link='$link']" -v "description" formatted_rss.xml)
+
+      # 清理描述中的 HTML 标签
+      description=$(echo "$description" | sed 's/<[^>]*>//g')
+      # 截断描述到 200 字符
+      description=$(echo "$description" | cut -c 1-200)"..."
 
       # 检查标题和简述是否包含任何关键词
       for KEYWORD in "${KEYWORDS[@]}"; do
@@ -48,38 +50,39 @@ check_new_posts() {
               --arg title "$title" \
               --arg description "$description" \
               --arg link "$link" \
-              --arg category "$category" \
               --arg chatid "$TELEGRAM_CHAT_ID" \
               '{
-                chat_id: "\($chatid)\n",
-                text: "*标题*: \($title)\n*简述*: \($description)\n*分类*: \($category)",
+                chat_id: $chatid,
+                text: "*标题*: \($title)\n*简述*: \($description)",
                 parse_mode: "Markdown",
                 reply_markup: {
                   inline_keyboard: [
                     [
                       {
                         text: "链接",
-                        url: "\($link)\n"
+                        url: $link
                       }
                     ]
                   ]
                 }
               }')
-            # 打印调试信息
-            #echo "Generated JSON message:"
-            #echo "$message"
+
             # 发送通知到 Telegram
-            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+            response=$(curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
               -H "Content-Type: application/json" \
-              -d "$message"
-            # 打印响应调试信息
-            echo "Telegram API response:"
-            echo "$response"
-            echo $'\n'
-            # 将 guid 添加到缓存中
-            echo "$guid" >> "$CACHE_FILE"
-            echo "New post detected and notified: $title"
-            echo $'\n'
+              -d "$message")
+
+            # 检查 Telegram API 响应
+            if echo "$response" | jq -e '.ok == true' > /dev/null; then
+              echo "成功发送通知: $title"
+            else
+              echo "发送通知失败: $title"
+              echo "Telegram API 错误: $(echo "$response" | jq -r '.description')"
+            fi
+
+            # 将 link 添加到缓存中
+            echo "$link" >> "$CACHE_FILE"
+            
             # 跳至下一个帖子
             break
           fi
