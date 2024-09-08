@@ -6,10 +6,8 @@ CACHE_FILE="rss_cache.txt"
 
 # 定义 RSS 源数组
 RSS_FEEDS=(
-  "https://linux.do/latest.rss"
   "https://www.v2ex.com/index.xml"
   "https://www.nodeseek.com/rss.xml"
-  "https://hostloc.com/forum.php?mod=rss"
 )
 
 # 函数：检查单个 RSS 源
