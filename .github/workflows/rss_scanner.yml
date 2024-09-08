@@ -8,14 +8,14 @@ on:
 jobs:
   scan-rss:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 需要写入权限来推送更改
     steps:
     - uses: actions/checkout@v2
-    
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -25,3 +25,18 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: python rss_scanner.py
+    - name: Check file permissions
+      run: |
+        ls -l sent_posts.json
+        cat sent_posts.json
+    - name: Check Git status
+      run: |
+        git status
+        git diff
+    - name: Commit and push changes
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        git add sent_posts.json
+        git commit -m "Update sent_posts.json" || echo "No changes to commit"
+        git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
