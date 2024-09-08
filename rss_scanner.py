@@ -12,7 +12,7 @@ RSS_FEEDS = [
     'https://www.nodeseek.com/rss.xml',
     'https://hostloc.com/forum.php?mod=rss'
 ]
-KEYWORDS = ['白嫖', '优惠', '免费', '折扣', '推广', '抽奖']
+KEYWORDS = ['白嫖', '优惠', '免费', '折扣', '推广', '抽奖',"送" ,"抽","羊毛"]
 SENT_POSTS_FILE = os.path.join(os.getcwd(), 'sent_posts.json')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
@@ -48,7 +48,6 @@ def send_telegram_message(message):
     data = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message,
-        "parse_mode": "HTML"
     }
     response = requests.post(url, data=data)
     if response.status_code == 200:
@@ -89,7 +88,7 @@ def check_rss_feeds():
 
                 if any(keyword.lower() in title.lower() for keyword in KEYWORDS) and link not in sent_posts:
                     print(f"发现匹配的帖子: {title}")
-                    message = f"<b>{title}</b>\n\n{link}"
+                    message = f"{title}\n{link}"
                     send_telegram_message(message)
                     sent_posts[link] = entry_time.isoformat()
                     new_posts = True
