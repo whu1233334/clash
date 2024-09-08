@@ -7,9 +7,9 @@ CACHE_FILE="./rss_cache.txt"
 # Telegram Bot API Key
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}"
 # Telegram chat ID，可以是私人或群组的 chat ID
-TELEGRAM_CHAT_ID="{TELEGRAM_CHAT_ID}"
+TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}"
 # 关键词数组，只要其中一个出现就推送
-KEYWORDS=("关键词1" "关键词2" "关键词3...")
+KEYWORDS=("白嫖" "免费" "薅羊毛")
 
 # 函数：下载 RSS 并检查新条目
 check_new_posts() {
