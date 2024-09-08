@@ -2,8 +2,8 @@ import os
 import json
 import feedparser
 import requests
-from datetime import datetime, timezone
 import re
+from datetime import datetime, timezone, timedelta
 
 # 配置
 RSS_FEEDS = [
@@ -12,7 +12,7 @@ RSS_FEEDS = [
     'https://www.nodeseek.com/rss.xml',
     'https://hostloc.com/forum.php?mod=rss'
 ]
-KEYWORDS = ['白嫖', '优惠', '免费', '折扣', '推广', '抽奖',"送" ,"抽","羊毛"]
+KEYWORDS = ['白嫖', '优惠', '免费', '折扣', '推广', '抽奖', "送", "抽", "羊毛"]
 SENT_POSTS_FILE = os.path.join(os.getcwd(), 'sent_posts.json')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
@@ -58,6 +58,8 @@ def send_telegram_message(message):
 def check_rss_feeds():
     sent_posts = load_sent_posts()
     current_time = datetime.now(timezone.utc)
+    time_threshold = current_time - timedelta(hours=24)  # 24小时前的时间
+
     new_posts = False
 
     print("开始检查 RSS 源")
@@ -86,17 +88,21 @@ def check_rss_feeds():
                 print(f"检查条目: {title} - {link}")
                 print(f"发布时间: {entry_time}")
 
-                if any(keyword.lower() in title.lower() for keyword in KEYWORDS) and link not in sent_posts:
-                    print(f"发现匹配的帖子: {title}")
-                    message = f"{title}\n{link}"
-                    send_telegram_message(message)
-                    sent_posts[link] = entry_time.isoformat()
-                    new_posts = True
-                else:
-                    if link in sent_posts:
-                        print(f"帖子已经发送过: {title}")
+                # 只处理最近24小时内的帖子
+                if entry_time > time_threshold:
+                    if any(keyword.lower() in title.lower() for keyword in KEYWORDS) and link not in sent_posts:
+                        print(f"发现匹配的帖子: {title}")
+                        message = f"{title}\n{link}"
+                        send_telegram_message(message)
+                        sent_posts[link] = entry_time.isoformat()
+                        new_posts = True
                     else:
-                        print(f"帖子不匹配关键词: {title}")
+                        if link in sent_posts:
+                            print(f"帖子已经发送过: {title}")
+                        else:
+                            print(f"帖子不匹配关键词: {title}")
+                else:
+                    print(f"帖子超出时间范围: {title}")
 
         except Exception as e:
             print(f"解析 {feed_url} 时出错: {e}")
@@ -108,6 +114,7 @@ def check_rss_feeds():
         print("没有发现新的匹配帖子")
 
     print("RSS 检查完成")
+
 
 
 if __name__ == "__main__":
