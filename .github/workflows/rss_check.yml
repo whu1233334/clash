@@ -1,4 +1,4 @@
-name: RSS Check
+  name: RSS Check
 
 on:
   schedule:
@@ -25,9 +25,11 @@ jobs:
         ./rss_check.sh
 
     - name: Commit changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT }}
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add rss_cache.txt formatted_rss.xml latest_rss.xml
-        git commit -m "Update RSS cache" -a || echo "No changes to commit"
-        git push origin master # 使用默认的 GITHUB_TOKEN
+        git add .
+        git commit -m "Update RSS cache"
+        git push https://${{ secrets.GITHUB_TOKEN }}@github.com/whu1233334/clash.git HEAD:master
