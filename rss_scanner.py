@@ -12,7 +12,7 @@ RSS_FEEDS = [
     'https://www.nodeseek.com/rss.xml',
     'https://serverplayer.com/tags/loc.rss'
 ]
-KEYWORDS = ['白嫖', '优惠', '免费', '折扣', '推广', '抽奖', "送", "抽", "羊毛"]
+KEYWORDS = ['白嫖', '优惠', '免费', '折扣', '推广', '抽奖', '送', '抽', '羊毛', '便宜', '薅', '无限', '分享']
 SENT_POSTS_FILE = os.path.join(os.getcwd(), 'sent_posts.json')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
