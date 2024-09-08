@@ -10,7 +10,7 @@ RSS_FEEDS = [
     'https://linux.do/latest.rss',
     'https://www.v2ex.com/index.xml',
     'https://www.nodeseek.com/rss.xml',
-    'https://hostloc.com/forum.php?mod=rss'
+    'https://hostloc.com/forum.php?fid=45&mod=rss'
 ]
 KEYWORDS = ['白嫖', '优惠', '免费', '折扣', '推广', '抽奖', "送", "抽", "羊毛"]
 SENT_POSTS_FILE = os.path.join(os.getcwd(), 'sent_posts.json')
