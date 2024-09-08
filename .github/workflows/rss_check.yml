@@ -32,4 +32,4 @@ jobs:
         git config --local user.name "GitHub Action"
         git add rss_cache.txt formatted_rss.xml latest_rss.xml
         git commit -m "Update RSS cache" -a || echo "No changes to commit"
-        git push https://$$GITHUB_TOKEN@github.com/whu1233334/clash.git HEAD:master
+        git push https://${{ secrets.GITHUB_TOKEN }}@github.com/whu1233334/clash.git HEAD:master
