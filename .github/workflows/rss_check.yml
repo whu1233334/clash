@@ -1,4 +1,4 @@
-  name: RSS Check
+name: RSS Check
 
 on:
   schedule:
