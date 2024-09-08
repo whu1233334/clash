@@ -24,9 +24,22 @@ SENT_POSTS_FILE = 'sent_posts.json'
 
 def load_sent_posts():
     if os.path.exists(SENT_POSTS_FILE):
-        with open(SENT_POSTS_FILE, 'r') as f:
-            return json.load(f)
-    return {}
+        try:
+            with open(SENT_POSTS_FILE, 'r') as f:
+                content = f.read().strip()
+                if content:
+                    return json.loads(content)
+                else:
+                    print("sent_posts.json 文件为空，将使用空字典")
+                    return {}
+        except json.JSONDecodeError as e:
+            print(f"解析 sent_posts.json 时出错: {e}")
+            print("将使用空字典并覆盖损坏的文件")
+            return {}
+    else:
+        print("sent_posts.json 文件不存在，将创建新文件")
+        return {}
+
 
 def save_sent_posts(sent_posts):
     with open(SENT_POSTS_FILE, 'w') as f:
