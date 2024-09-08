@@ -6,7 +6,6 @@ CACHE_FILE="rss_cache.txt"
 
 # 定义 RSS 源数组
 RSS_FEEDS=(
-  "https://www.v2ex.com/index.xml"
   "https://www.nodeseek.com/rss.xml"
 )
 
