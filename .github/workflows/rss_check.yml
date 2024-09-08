@@ -1,21 +1,40 @@
-name: RSS Check and Notify
+name: Check RSS and Update Repository
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # 每30分钟运行一次
+    - cron: '0 */1 * * *'  # 每小时运行一次
   workflow_dispatch:  # 允许手动触发
 
+permissions:
+  contents: write
+
 jobs:
-  check-rss:
+  check-rss-and-update:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # 这确保我们获取完整的历史记录
 
-    - name: Set up environment
+    - name: Setup Git
+      run: |
+        git config --global user.name 'GitHub Action'
+        git config --global user.email 'action@github.com'
+
+    - name: Update .gitignore
+      run: |
+        echo "formatted_rss.xml" >> .gitignore
+        echo "latest_rss.xml" >> .gitignore
+
+    - name: Remove tracked files
+      run: |
+        git rm --cached formatted_rss.xml latest_rss.xml || true
+        git commit -m "Stop tracking formatted_rss.xml and latest_rss.xml" || true
+
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y xmlstarlet jq curl
+        sudo apt-get install -y xmlstarlet curl jq
 
     - name: Run RSS check script
       env:
@@ -25,10 +44,8 @@ jobs:
         chmod +x ./rss_check.sh
         ./rss_check.sh
 
-    - name: Commit and push if changed
+    - name: Commit and push changes
       run: |
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git config --global user.name "GitHub Actions"
-        git add rss_cache.txt
-        git commit -m "Update RSS cache" || exit 0
-        git push
+        git add .gitignore rss_cache.txt
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update RSS cache and .gitignore" && git push)
+
