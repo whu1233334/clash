@@ -32,4 +32,4 @@ jobs:
         git config --local user.name "GitHub Action"
         git add .
         git commit -m "Update RSS cache"
-        git push https://${{ secrets.GITHUB_TOKEN }}@github.com/whu1233334/clash.git HEAD:master
+        git push https://${{ secrets.PAT }}@github.com/whu1233334/clash.git HEAD:master
