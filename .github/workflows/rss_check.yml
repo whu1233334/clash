@@ -2,27 +2,32 @@ name: RSS Check
 
 on:
   schedule:
-    - cron: '0 * * * *' # 每小时运行一次
-  workflow_dispatch: # 允许手动触发
+    - cron: '0 */1 * * *'  # 每小时运行一次
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
-  rss-check:
+  check-rss:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2 # 检出仓库代码
+    - uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14' # 使用 Node.js 14 版本，根据需要修改
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xmlstarlet curl jq
 
-      - name: Install dependencies
-        run: |
-          npm install xmlstarlet curl jq
+    - name: Run RSS check script
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        chmod +x ./rss_check.sh
+        ./rss_check.sh
 
-      - name: Run RSS check script
-        run: |
-          # 确保脚本有执行权限
-          chmod +x ./rss_check.sh
-          # 运行脚本
-          ./rss_check.sh
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Update RSS cache" -a || echo "No changes to commit"
+        git push
