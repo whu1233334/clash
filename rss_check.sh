@@ -1,58 +1,91 @@
 #!/bin/bash
 
-# 创建临时目录
-TEMP_DIR=$(mktemp -d)
-CACHE_FILE="rss_cache.txt"
+# RSS 订阅地址
+RSS_URL="https://rss.nodeseek.com/"
+# 本地缓存文件，名字可随便改
+CACHE_FILE="./rss_cache.txt"
+# Telegram Bot API Key
+TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN}"
+# Telegram chat ID，可以是私人或群组的 chat ID
+TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID}"
+# 关键词数组，只要其中一个出现就推送
+KEYWORDS=("白嫖" "免费" "薅羊毛")
 
-# 定义 RSS 源数组
-RSS_FEEDS=(
-  "https://www.nodeseek.com/rss.xml"
-)
+# 函数：下载 RSS 并检查新条目
+check_new_posts() {
+  # 下载最新的 RSS 数据
+  curl -s "$RSS_URL" > latest_rss.xml
 
-# 函数：检查单个 RSS 源
-check_rss() {
-  local rss_url="$1"
-  local LATEST_RSS="$TEMP_DIR/latest_rss.xml"
-  local FORMATTED_RSS="$TEMP_DIR/formatted_rss.xml"
+  # 为了确保正确处理特殊字符，先转换 XML
+  xmlstarlet fo --recover latest_rss.xml 2>/dev/null > formatted_rss.xml
 
-  # 下载最新的 RSS feed
-  curl -s "$rss_url" > "$LATEST_RSS"
+  # 检查是否有缓存文件，如果没有，则创建一个空的
+  if [ ! -f "$CACHE_FILE" ]; then
+    touch "$CACHE_FILE"
+  fi
 
-  # 使用 xmlstarlet 格式化 RSS feed
-  xmlstarlet fo -R "$LATEST_RSS" > "$FORMATTED_RSS"
+  # 解析新条目并检查新帖子
+  IFS=$'\n' # 设置内部字段分隔符为换行符，以正确读取每条记录
+  readarray -t guids < <(xmlstarlet sel -t -m "//item" -v "guid" -n formatted_rss.xml)
+  
+  for guid in "${guids[@]}"; do
+    # 检查 guid 是否已存在于缓存中
+    if ! grep -qF -- "$guid" "$CACHE_FILE"; then
+      # 如果这是一个新帖子，提取详细信息并发送通知
+      title=$(xmlstarlet sel -t -m "//item[guid='$guid']" -v "title" formatted_rss.xml)
+      description=$(xmlstarlet sel -t -m "//item[guid='$guid']" -v "description" formatted_rss.xml)
+      link=$(xmlstarlet sel -t -m "//item[guid='$guid']" -v "link" formatted_rss.xml)
+      category=$(xmlstarlet sel -t -m "//item[guid='$guid']" -v "category" formatted_rss.xml)
 
-  # 解析 RSS feed 并发送 Telegram 通知
-  while IFS= read -r line; do
-    title=$(echo "$line" | cut -f1)
-    link=$(echo "$line" | cut -f2)
-    guid=$(echo "$line" | cut -f3)
-    date=$(echo "$line" | cut -f4)
-
-    # 检查这个 GUID 是否已经在缓存中
-    if ! grep -q "^$guid:" "$CACHE_FILE"; then
-      # 构造消息：只包含标题
-      message="$title"
-      # 发送消息，包含链接预览
-      curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-        -d chat_id="$$TELEGRAM_CHAT_ID" \
-        -d text="$$message" \
-        -d parse_mode="HTML" \
-        -d disable_web_page_preview=false \
-        -d reply_markup="{\"inline_keyboard\":[[{\"text\":\"查看原文\",\"url\":\"$link\"}]]}"
-      
-      # 将新的 GUID 添加到缓存文件
-      echo "$guid:$date" >> "$CACHE_FILE"
+      # 检查标题和简述是否包含任何关键词
+      for KEYWORD in "${KEYWORDS[@]}"; do
+          if ((echo "$title" | grep -iq "$KEYWORD") || (echo "$description" | grep -iq "$KEYWORD")); then
+            # 确保提取的字段不为空
+            description=${description:-No description available.}
+    
+            # 格式化消息
+            message=$(jq -n \
+              --arg title "$title" \
+              --arg description "$description" \
+              --arg link "$link" \
+              --arg category "$category" \
+              --arg chatid "$TELEGRAM_CHAT_ID" \
+              '{
+                chat_id: "\($chatid)\n",
+                text: "*标题*: \($title)\n*简述*: \($description)\n*分类*: \($category)",
+                parse_mode: "Markdown",
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      {
+                        text: "链接",
+                        url: "\($link)\n"
+                      }
+                    ]
+                  ]
+                }
+              }')
+            # 打印调试信息
+            #echo "Generated JSON message:"
+            #echo "$message"
+            # 发送通知到 Telegram
+            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+              -H "Content-Type: application/json" \
+              -d "$message"
+            # 打印响应调试信息
+            echo "Telegram API response:"
+            echo "$response"
+            echo $'\n'
+            # 将 guid 添加到缓存中
+            echo "$guid" >> "$CACHE_FILE"
+            echo "New post detected and notified: $title"
+            echo $'\n'
+            # 跳至下一个帖子
+            break
+          fi
+      done
     fi
-  done < <(xmlstarlet sel -T -t -m "//item" -v "concat(title, '&#9;', link, '&#9;', guid, '&#9;', pubDate)" -n "$FORMATTED_RSS")
+  done
 }
 
-# 主循环：检查每个 RSS 源
-for feed in "${RSS_FEEDS[@]}"; do
-  check_rss "$feed"
-done
-
-# 清理临时文件
-trap 'rm -rf "$TEMP_DIR"' EXIT
-
-# 清理旧的缓存条目（可选，保留最近30天的条目）
-sed -i -e :a -e '$q;N;30,$D;ba' "$CACHE_FILE"
+check_new_posts
