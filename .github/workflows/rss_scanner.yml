@@ -2,7 +2,7 @@ name: RSS Scanner
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # 每30分钟运行一次
+    - cron: '*/5 * * * *'  # 每30分钟运行一次
   workflow_dispatch:  # 允许手动触发
 
 jobs:
