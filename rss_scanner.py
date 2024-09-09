@@ -7,10 +7,7 @@ from datetime import datetime, timezone, timedelta
 
 # 配置（保持不变）
 RSS_FEEDS = [
-    'https://linux.do/latest.rss',
-    'https://www.v2ex.com/index.xml',
-    'https://www.nodeseek.com/rss.xml',
-    'https://serverplayer.com/tags/loc.rss'
+    'https://www.hostloc.com'
 ]
 KEYWORDS = ['白嫖', '优惠', '免费', '折扣', '推广', '抽奖', '送', '抽', '羊毛', '便宜', '薅', '无限', '推荐']
 SENT_POSTS_FILE = os.path.join(os.getcwd(), 'sent_posts.json')
